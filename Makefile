@@ -67,6 +67,7 @@ rpm:
 	rm -rf $(FPM_DIR)
 	$(MAKE) DESTDIR=$(FPM_DIR) install-strip
 	fpm -f -s dir -t rpm -d openvpn \
+	--rpm-dist "$(shell rpmbuild -E '%{?dist}' | sed -e 's#^\.##')" \
 	-n $(PACKAGE) -v $(VERSION) --iteration $(RPM_ITERATION) \
 	--license $(LICENSE) --url $(UPSTREAM_URL) \
 	--rpm-summary "$(SUMMARY)" --description "$(DESCRIPTION)" \

@@ -53,19 +53,19 @@ clean:
 installdirs:
 	mkdir -p $(DESTDIR)$(LIBDIR)/openvpn/plugins
 
-install: $(PROGRAM)
-	$(MAKE) installdirs
+install: all
+	@$(MAKE) installdirs
 	$(INSTALL) -m755 $< $(DESTDIR)$(LIBDIR)/openvpn/plugins
 
 uninstall:
 	rm -f $(DESTDIR)$(LIBDIR)/openvpn/plugins/$(PROGRAM)
 
 install-strip:
-	$(MAKE) INSTALL='$(INSTALL) -s' install
+	@$(MAKE) INSTALL='$(INSTALL) -s' install
 
 rpm:
 	rm -rf $(FPM_DIR)
-	$(MAKE) DESTDIR=$(FPM_DIR) install-strip
+	@$(MAKE) DESTDIR=$(FPM_DIR) install-strip
 	fpm -f -s dir -t rpm -d openvpn \
 	--rpm-dist "$(shell rpmbuild -E '%{?dist}' | sed -e 's#^\.##')" \
 	-n $(PACKAGE) -v $(VERSION) --iteration $(RPM_ITERATION) \

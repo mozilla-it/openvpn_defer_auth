@@ -1,0 +1,141 @@
+--- openvpn_defer_auth.c.orig	2018-06-29 19:13:04.000000000 +0000
++++ openvpn_defer_auth.c	2018-06-29 19:19:38.000000000 +0000
+@@ -57,11 +57,6 @@
+ 
+ #include "openvpn-plugin.h"
+ 
+-/* bool definitions */
+-#define bool int
+-#define true 1
+-#define false 0
+-
+ /*
+  * Our context, where we keep our state.
+  */
+@@ -73,7 +68,6 @@
+ 
+ struct plugin_per_client_context {
+     int n_calls;
+-    bool generated_pf_file;
+ };
+ 
+ /*
+@@ -153,17 +147,7 @@
+      * Which callbacks to intercept.
+      */
+     *type_mask =
+-        OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_UP)
+-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_DOWN)
+-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_ROUTE_UP)
+-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_IPCHANGE)
+-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_VERIFY)
+-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY)
+-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT_V2)
+-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_DISCONNECT)
+-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_LEARN_ADDRESS)
+-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_FINAL)
+-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_ENABLE_PF);
++        OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY);
+ 
+     return (openvpn_plugin_handle_t) context;
+ }
+@@ -213,41 +197,6 @@
+     }
+ }
+ 
+-static int
+-tls_final(struct plugin_context *context, struct plugin_per_client_context *pcc, const char *argv[], const char *envp[])
+-{
+-    if (context->test_packet_filter)
+-    {
+-        if (!pcc->generated_pf_file)
+-        {
+-            const char *pff = get_env("pf_file", envp);
+-            const char *cn = get_env("username", envp);
+-            if (pff && cn)
+-            {
+-                char buf[256];
+-                snprintf(buf, sizeof(buf), "( sleep %d ; echo PF %s/%s ; cp \"%s.pf\" \"%s\" ) &",
+-                         context->test_packet_filter, cn, pff, cn, pff);
+-                printf("%s\n", buf);
+-                system(buf);
+-                pcc->generated_pf_file = true;
+-                return OPENVPN_PLUGIN_FUNC_SUCCESS;
+-            }
+-            else
+-            {
+-                return OPENVPN_PLUGIN_FUNC_ERROR;
+-            }
+-        }
+-        else
+-        {
+-            return OPENVPN_PLUGIN_FUNC_ERROR;
+-        }
+-    }
+-    else
+-    {
+-        return OPENVPN_PLUGIN_FUNC_SUCCESS;
+-    }
+-}
+-
+ OPENVPN_EXPORT int
+ openvpn_plugin_func_v2(openvpn_plugin_handle_t handle,
+                        const int type,
+@@ -260,57 +209,10 @@
+     struct plugin_per_client_context *pcc = (struct plugin_per_client_context *) per_client_context;
+     switch (type)
+     {
+-        case OPENVPN_PLUGIN_UP:
+-            printf("OPENVPN_PLUGIN_UP\n");
+-            return OPENVPN_PLUGIN_FUNC_SUCCESS;
+-
+-        case OPENVPN_PLUGIN_DOWN:
+-            printf("OPENVPN_PLUGIN_DOWN\n");
+-            return OPENVPN_PLUGIN_FUNC_SUCCESS;
+-
+-        case OPENVPN_PLUGIN_ROUTE_UP:
+-            printf("OPENVPN_PLUGIN_ROUTE_UP\n");
+-            return OPENVPN_PLUGIN_FUNC_SUCCESS;
+-
+-        case OPENVPN_PLUGIN_IPCHANGE:
+-            printf("OPENVPN_PLUGIN_IPCHANGE\n");
+-            return OPENVPN_PLUGIN_FUNC_SUCCESS;
+-
+-        case OPENVPN_PLUGIN_TLS_VERIFY:
+-            printf("OPENVPN_PLUGIN_TLS_VERIFY\n");
+-            return OPENVPN_PLUGIN_FUNC_SUCCESS;
+-
+         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
+             printf("OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY\n");
+             return auth_user_pass_verify(context, pcc, argv, envp);
+ 
+-        case OPENVPN_PLUGIN_CLIENT_CONNECT_V2:
+-            printf("OPENVPN_PLUGIN_CLIENT_CONNECT_V2\n");
+-            return OPENVPN_PLUGIN_FUNC_SUCCESS;
+-
+-        case OPENVPN_PLUGIN_CLIENT_DISCONNECT:
+-            printf("OPENVPN_PLUGIN_CLIENT_DISCONNECT\n");
+-            return OPENVPN_PLUGIN_FUNC_SUCCESS;
+-
+-        case OPENVPN_PLUGIN_LEARN_ADDRESS:
+-            printf("OPENVPN_PLUGIN_LEARN_ADDRESS\n");
+-            return OPENVPN_PLUGIN_FUNC_SUCCESS;
+-
+-        case OPENVPN_PLUGIN_TLS_FINAL:
+-            printf("OPENVPN_PLUGIN_TLS_FINAL\n");
+-            return tls_final(context, pcc, argv, envp);
+-
+-        case OPENVPN_PLUGIN_ENABLE_PF:
+-            printf("OPENVPN_PLUGIN_ENABLE_PF\n");
+-            if (context->test_packet_filter)
+-            {
+-                return OPENVPN_PLUGIN_FUNC_SUCCESS;
+-            }
+-            else
+-            {
+-                return OPENVPN_PLUGIN_FUNC_ERROR;
+-            }
+-
+         default:
+             printf("OPENVPN_PLUGIN_?\n");
+             return OPENVPN_PLUGIN_FUNC_ERROR;

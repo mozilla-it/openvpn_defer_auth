@@ -1,0 +1,66 @@
+--- openvpn_defer_auth.c.orig	2018-06-29 21:32:08.000000000 +0000
++++ openvpn_defer_auth.c	2018-06-29 21:32:29.000000000 +0000
+@@ -24,6 +24,8 @@
+ #include <stdio.h>
+ #include <string.h>
+ #include <stdlib.h>
++#include <unistd.h>
++#include <signal.h>
+ #include <sys/wait.h>
+ 
+ #include "openvpn-plugin.h"
+@@ -73,9 +75,43 @@
+ }
+ 
+ static int
+-auth_user_pass_verify(struct plugin_context *context, const char *argv[], const char *envp[])
++deferred_auth_handler(struct plugin_context *context, const char *argv[], const char *envp[])
+ {
+-    return OPENVPN_PLUGIN_FUNC_SUCCESS;
++    int pid;
++    struct sigaction sa;
++    char *script = context->script_path;
++
++    sigemptyset(&sa.sa_mask);
++    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
++    sa.sa_handler = &handle_sigchld;
++
++    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
++        return OPENVPN_PLUGIN_FUNC_ERROR;
++    }
++
++    pid = fork();
++
++    if (pid < 0) {
++        /*
++         * Fork failed, bail out.
++         */
++        return OPENVPN_PLUGIN_FUNC_ERROR;
++    } else if (pid > 0) {
++        /*
++         * We're the parent.  Tell openvpn we're deferring.
++         */
++        return OPENVPN_PLUGIN_FUNC_DEFERRED;
++    } else {
++        /*
++         * We're the child.  Invoke the script.
++         */
++        execve(script, &script, (char *const*)envp);
++        /*
++         * Since we exec'ed we should never get here.  But just in case, exit hard.
++         */
++        exit(127);
++    }
++
+ }
+ 
+ OPENVPN_EXPORT int
+@@ -90,7 +126,7 @@
+     switch (type)
+     {
+         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
+-            return auth_user_pass_verify(context, argv, envp);
++            return deferred_auth_handler(context, argv, envp);
+ 
+         default:
+             return OPENVPN_PLUGIN_FUNC_ERROR;

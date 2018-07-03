@@ -53,9 +53,9 @@ clean:
 installdirs:
 	mkdir -p $(DESTDIR)$(LIBDIR)/openvpn/plugins
 
-install: all
+install: preflight $(PROGRAM)
 	@$(MAKE) installdirs
-	$(INSTALL) -m755 $< $(DESTDIR)$(LIBDIR)/openvpn/plugins
+	$(INSTALL) -m755 $(PROGRAM) $(DESTDIR)$(LIBDIR)/openvpn/plugins
 
 uninstall:
 	rm -f $(DESTDIR)$(LIBDIR)/openvpn/plugins/$(PROGRAM)

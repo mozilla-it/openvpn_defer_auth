@@ -1,6 +1,8 @@
 # This project's files, then general C-related content
 # openvpn-plugin.h is not ours, don't distribute it.
 openvpn-plugin.h
+# fpm builds an RPM locally
+*.rpm
 
 # Sourced from https://github.com/github/gitignore/blob/master/C.gitignore
 # Prerequisites

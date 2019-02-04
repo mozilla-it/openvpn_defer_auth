@@ -17,7 +17,7 @@
 +deferred_auth_handler(struct plugin_context *context, const char *argv[], const char *envp[])
  {
 -    return OPENVPN_PLUGIN_FUNC_SUCCESS;
-+    int pid;
++    pid_t pid;
 +    struct sigaction sa;
 +    char *script = context->script_path;
 +

@@ -77,7 +77,7 @@ openvpn_plugin_open_v2(unsigned int *type_mask, const char *argv[], const char *
 static int
 deferred_auth_handler(struct plugin_context *context, const char *argv[], const char *envp[])
 {
-    int pid;
+    pid_t pid;
     struct sigaction sa;
     char *script = context->script_path;
 

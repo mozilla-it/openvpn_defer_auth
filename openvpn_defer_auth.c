@@ -60,19 +60,24 @@ openvpn_plugin_min_version_required_v1()
     return OPENVPN_PLUGIN_VERSION_MIN;
 }
 
-OPENVPN_EXPORT openvpn_plugin_handle_t
-openvpn_plugin_open_v2(unsigned int *type_mask, const char *argv[], const char *envp[],
-						struct openvpn_plugin_string_list **return_list)
+OPENVPN_EXPORT int
+openvpn_plugin_open_v3(const int struct_version,
+                       struct openvpn_plugin_args_open_in const *arguments,
+                       struct openvpn_plugin_args_open_return *retptr)
 {
     struct plugin_context *context;
+
+    if (struct_version < OPENVPN_PLUGINv3_STRUCTVER) {
+        return OPENVPN_PLUGIN_FUNC_ERROR;
+    }
 
     /*
      * Allocate our context
      */
     context = (struct plugin_context *) calloc(1, sizeof(struct plugin_context));
 
-    if (argv[1]) {
-        context->script_path = strdup(argv[1]);
+    if (arguments->argv[1]) {
+        context->script_path = strdup(arguments->argv[1]);
         if (context->script_path == NULL) {
             perror("Unable to allocate memory\n");
             exit(EXIT_FAILURE);
@@ -82,10 +87,12 @@ openvpn_plugin_open_v2(unsigned int *type_mask, const char *argv[], const char *
     /*
      * Which callbacks to intercept.
      */
-    *type_mask =
+    retptr->type_mask =
         OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY);
 
-    return (openvpn_plugin_handle_t) context;
+    retptr->handle = (openvpn_plugin_handle_t) context;
+
+    return OPENVPN_PLUGIN_FUNC_SUCCESS;
 }
 
 static int
@@ -129,18 +136,20 @@ deferred_auth_handler(struct plugin_context *context, const char *argv[], const 
 }
 
 OPENVPN_EXPORT int
-openvpn_plugin_func_v2(openvpn_plugin_handle_t handle,
-                       const int type,
-                       const char *argv[],
-                       const char *envp[],
-                       void *per_client_context,
-                       struct openvpn_plugin_string_list **return_list)
+openvpn_plugin_func_v3(const int struct_version,
+                       struct openvpn_plugin_args_func_in const *arguments,
+                       struct openvpn_plugin_args_func_return *retptr)
 {
-    struct plugin_context *context = (struct plugin_context *) handle;
-    switch (type)
+    struct plugin_context *context = (struct plugin_context *) arguments->handle;
+
+    if (struct_version < OPENVPN_PLUGINv3_STRUCTVER) {
+        return OPENVPN_PLUGIN_FUNC_ERROR;
+    }
+
+    switch (arguments->type)
     {
         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
-            return deferred_auth_handler(context, argv, envp);
+            return deferred_auth_handler(context, arguments->argv, arguments->envp);
 
         default:
             return OPENVPN_PLUGIN_FUNC_ERROR;

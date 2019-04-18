@@ -31,6 +31,11 @@
 #include "openvpn-plugin.h"
 
 /*
+ * Constants
+ */
+#define OPENVPN_PLUGIN_VERSION_MIN 3
+
+/*
  * Our context, where we keep our state.
  */
 
@@ -44,6 +49,15 @@ void handle_sigchld(int sig)
      * nonblocking wait (WNOHANG) for any child (-1) to come back
      */
     while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
+}
+
+/*
+ * Require OpenVPN Plugin API v3
+ */
+OPENVPN_EXPORT int
+openvpn_plugin_min_version_required_v1()
+{
+    return OPENVPN_PLUGIN_VERSION_MIN;
 }
 
 OPENVPN_EXPORT openvpn_plugin_handle_t

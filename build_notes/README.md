@@ -61,6 +61,10 @@ patch7.diff
 * adapt auth_user_pass_verify into the deferred auth handler
   * This is the actual INTERESTING piece.
 
+patch8.diff
+* Add a openvpn_plugin_min_version_required_v1 to require a version 3 API.
+  * This is actually kinda stupid.  https://github.com/openvpn/openvpn.git commit 6b2e3b9132e5820cebf4984c86ef742c11587790, 2010-11-29, introduced version 3.  There's no reason to think that someone from that long ago won't have access to version 3 of the API, but, it doesn't hurt, and we're going to add version 3 calls, so let's enforce it.
+
 With all of these in place, you now have a supremely boring piece of C code.  It does async/deferred auth queries for openvpn, which is pretty essential for multi-user.
 
 Revisting

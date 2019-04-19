@@ -6,12 +6,13 @@ INSTALL	:= install
 CFLAGS	:= -fPIC
 # RPM info
 VERSION := 1.0.0
+GIT_VERSION := $(shell git rev-parse HEAD)
 RPM_ITERATION := 1
 FPM_DIR := fpm_tmp_build_dir
 LICENSE := GPLv2
 UPSTREAM_URL := https://github.com/mozilla-it/openvpn_defer_auth
 SUMMARY := OpenVPN plugin to handle deferred authentication requests
-DESCRIPTION := Allows authentications for openvpn to be a nonblocking operation
+DESCRIPTION := Allows authentications for openvpn to be a nonblocking operation\nThis package is built upon commit $(GIT_VERSION)\n
 
 src = $(wildcard *.c)
 obj = $(src:.c=.o)
@@ -27,7 +28,6 @@ libdir_Linux_x86_64 = lib64
 libdir_Linux_i686   = lib
 libdir_Linux = $(libdir_Linux_$(shell uname -i))
 LIBDIR = $(PREFIX)/$(libdir_$(shell uname -s))
-
 
 .DEFAULT: all
 .PHONY: clean all preflight install installdirs install-strip uninstall rpm
@@ -70,5 +70,6 @@ rpm:
 	--rpm-dist "$(shell rpmbuild -E '%{?dist}' | sed -e 's#^\.##')" \
 	-n $(PACKAGE) -v $(VERSION) --iteration $(RPM_ITERATION) \
 	--license $(LICENSE) --url $(UPSTREAM_URL) \
-	--rpm-summary "$(SUMMARY)" --description "$(DESCRIPTION)" \
+	--rpm-summary "$(SUMMARY)" \
+	--description "$$(printf "$(DESCRIPTION)")" \
 	-C $(FPM_DIR) usr

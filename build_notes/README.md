@@ -22,21 +22,21 @@ Edits
 
 This directory contains patches demonstrating how/why we strip down the ```simple.c``` file (named as ```openvpn_defer_auth.c```), and then build it back up.
 
-patch0.diff
+patch00.diff
 * substitute openvpn_plugin_open_v2 for openvpn_plugin_open_v1
   * v1 is deprecated; this is a bug in the source upstream
   * This has [been reported](https://sourceforge.net/p/openvpn/mailman/message/36357089/), hopefully this patch will go away.
 
-patch1.diff
+patch01.diff
 * In openvpn_plugin_open_v2 and openvpn_plugin_func_v2, strip out all nonessential codepaths / functions they involve.
   * We only need OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY
   * this takes out tls_verify(), now unused
 
-patch2.diff
+patch02.diff
 * delete openvpn_plugin_client_constructor_v1 and openvpn_plugin_client_destructor_v1 - we don't use them.
   * This deletes plugin_per_client_context, unused.  We don't retain any per-client info, we just 'pass along' the script's results (see-also: ```auth_control_file```)
 
-patch3.diff
+patch03.diff
 * gut the existing openvpn_plugin_open_v2 useless functionality
   * This is all the "things the sample is supposed to do" that doesn't help us.
   * remove the comments at the top of the script specific to the dummy version (no longer applicable)
@@ -46,26 +46,26 @@ patch3.diff
     * ... which takes out the use of atoi_null0 at the same time
     * ... which then removes np and get_env
 
-patch4.diff
+patch04.diff
 * delete printf's that we don't want.
 
-patch5.diff  -  the beginning of creating
+patch05.diff  -  the beginning of creating
 * add 'script_path' to the context, so keep track of what script to call.
 
-patch6.diff
+patch06.diff
 * add a sigchld handler.
   * This doesn't do much for us on its own
   * it's bite-sized, and makes ready for the next patch
 
-patch7.diff
+patch07.diff
 * adapt auth_user_pass_verify into the deferred auth handler
   * This is the actual INTERESTING piece.
 
-patch8.diff
+patch08.diff
 * Add a openvpn_plugin_min_version_required_v1 to require a version 3 API.
   * This is actually kinda stupid.  https://github.com/openvpn/openvpn.git commit 6b2e3b9132e5820cebf4984c86ef742c11587790, 2010-11-29, introduced version 3.  There's no reason to think that someone from that long ago won't have access to version 3 of the API, but, it doesn't hurt, and we're going to add version 3 calls, so let's enforce it.
 
-patch9.diff
+patch09.diff
 * Change openvpn_plugin_{open,func}_v2 to openvpn_plugin_{open,func}_v3
   * This modernizes the API calls to the latest.
   * H/T to https://github.com/fac/auth-script-openvpn for a great exemplar.

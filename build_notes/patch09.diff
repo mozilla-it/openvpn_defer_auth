@@ -1,6 +1,6 @@
---- openvpn_defer_auth.c.orig	2019-04-18 23:49:23.980958578 +0000
-+++ openvpn_defer_auth.c	2019-04-18 23:49:11.423638298 +0000
-@@ -60,19 +60,24 @@
+--- openvpn_defer_auth.c.orig	2019-06-18 21:33:32.745284901 +0000
++++ openvpn_defer_auth.c	2019-06-18 21:36:08.900832880 +0000
+@@ -60,19 +60,29 @@
      return OPENVPN_PLUGIN_VERSION_MIN;
  }
  
@@ -14,9 +14,14 @@
  {
      struct plugin_context *context;
  
-+    if (struct_version < OPENVPN_PLUGINv3_STRUCTVER) {
-+        return OPENVPN_PLUGIN_FUNC_ERROR;
-+    }
++     /*
++      * Plugins that use the advanced features of the structure.  Since
++      * ours does not, we do not enforce it.
++      *
++      * if (struct_version < OPENVPN_PLUGINv3_STRUCTVER) {
++      *     return OPENVPN_PLUGIN_FUNC_ERROR;
++      * }
++      */
 +
      /*
       * Allocate our context
@@ -30,7 +35,7 @@
          if (context->script_path == NULL) {
              perror("Unable to allocate memory\n");
              exit(EXIT_FAILURE);
-@@ -82,10 +87,12 @@
+@@ -82,10 +92,12 @@
      /*
       * Which callbacks to intercept.
       */
@@ -45,7 +50,7 @@
  }
  
  static int
-@@ -129,18 +136,20 @@
+@@ -129,18 +141,25 @@
  }
  
  OPENVPN_EXPORT int
@@ -63,9 +68,14 @@
 -    switch (type)
 +    struct plugin_context *context = (struct plugin_context *) arguments->handle;
 +
-+    if (struct_version < OPENVPN_PLUGINv3_STRUCTVER) {
-+        return OPENVPN_PLUGIN_FUNC_ERROR;
-+    }
++     /*
++      * Plugins that use the advanced features of the structure.  Since
++      * ours does not, we do not enforce it.
++      *
++      * if (struct_version < OPENVPN_PLUGINv3_STRUCTVER) {
++      *     return OPENVPN_PLUGIN_FUNC_ERROR;
++      * }
++      */
 +
 +    switch (arguments->type)
      {

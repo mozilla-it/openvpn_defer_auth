@@ -67,9 +67,14 @@ openvpn_plugin_open_v3(const int struct_version,
 {
     struct plugin_context *context;
 
-    if (struct_version < OPENVPN_PLUGINv3_STRUCTVER) {
-        return OPENVPN_PLUGIN_FUNC_ERROR;
-    }
+     /*
+      * Plugins that use the advanced features of the structure.  Since
+      * ours does not, we do not enforce it.
+      *
+      * if (struct_version < OPENVPN_PLUGINv3_STRUCTVER) {
+      *     return OPENVPN_PLUGIN_FUNC_ERROR;
+      * }
+      */
 
     /*
      * Allocate our context
@@ -142,9 +147,14 @@ openvpn_plugin_func_v3(const int struct_version,
 {
     struct plugin_context *context = (struct plugin_context *) arguments->handle;
 
-    if (struct_version < OPENVPN_PLUGINv3_STRUCTVER) {
-        return OPENVPN_PLUGIN_FUNC_ERROR;
-    }
+     /*
+      * Plugins that use the advanced features of the structure.  Since
+      * ours does not, we do not enforce it.
+      *
+      * if (struct_version < OPENVPN_PLUGINv3_STRUCTVER) {
+      *     return OPENVPN_PLUGIN_FUNC_ERROR;
+      * }
+      */
 
     switch (arguments->type)
     {

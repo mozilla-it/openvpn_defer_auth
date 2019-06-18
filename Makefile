@@ -5,7 +5,7 @@ PREFIX	:= /usr
 INSTALL	:= install
 CFLAGS	:= -fPIC
 # RPM info
-VERSION := 1.1.0
+VERSION := 1.2.0
 GIT_VERSION := $(shell git rev-parse HEAD)
 RPM_ITERATION := 1
 FPM_DIR := fpm_tmp_build_dir

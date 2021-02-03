@@ -1,74 +1,28 @@
---- openvpn_defer_auth.c.orig	2018-06-29 19:34:35.000000000 +0000
-+++ openvpn_defer_auth.c	2018-06-29 19:34:15.000000000 +0000
-@@ -66,10 +66,6 @@
-     int test_packet_filter;
- };
- 
--struct plugin_per_client_context {
--    int n_calls;
--};
--
- /*
-  * Given an environmental variable name, search
-  * the envp array for its value, returning it
-@@ -153,7 +149,7 @@
- }
- 
- static int
--auth_user_pass_verify(struct plugin_context *context, struct plugin_per_client_context *pcc, const char *argv[], const char *envp[])
-+auth_user_pass_verify(struct plugin_context *context, const char *argv[], const char *envp[])
- {
-     if (context->test_deferred_auth)
-     {
-@@ -175,15 +171,13 @@
-             char buf[256];
-             int auth = 2;
-             sscanf(username, "%d", &auth);
--            snprintf(buf, sizeof(buf), "( sleep %d ; echo AUTH %s %d ; echo %d >%s ) &",
-+            snprintf(buf, sizeof(buf), "( sleep %d ; echo AUTH %s %d ; echo '' >%s ) &",
-                      context->test_deferred_auth,
-                      auth_control_file,
-                      auth,
--                     pcc->n_calls < auth,
-                      auth_control_file);
-             printf("%s\n", buf);
-             system(buf);
--            pcc->n_calls++;
-             return OPENVPN_PLUGIN_FUNC_DEFERRED;
-         }
-         else
-@@ -206,12 +200,11 @@
-                        struct openvpn_plugin_string_list **return_list)
- {
-     struct plugin_context *context = (struct plugin_context *) handle;
--    struct plugin_per_client_context *pcc = (struct plugin_per_client_context *) per_client_context;
-     switch (type)
-     {
-         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
-             printf("OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY\n");
--            return auth_user_pass_verify(context, pcc, argv, envp);
-+            return auth_user_pass_verify(context, argv, envp);
- 
-         default:
-             printf("OPENVPN_PLUGIN_?\n");
-@@ -219,20 +212,6 @@
-     }
- }
- 
--OPENVPN_EXPORT void *
--openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
--{
--    printf("FUNC: openvpn_plugin_client_constructor_v1\n");
--    return calloc(1, sizeof(struct plugin_per_client_context));
--}
--
--OPENVPN_EXPORT void
--openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *per_client_context)
--{
--    printf("FUNC: openvpn_plugin_client_destructor_v1\n");
--    free(per_client_context);
--}
--
- OPENVPN_EXPORT void
- openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
- {
+76,79d75
+< struct plugin_per_client_context {
+<     int n_calls;
+< };
+< 
+197d192
+<                       struct plugin_per_client_context *pcc,
+296d290
+<     struct plugin_per_client_context *pcc = (struct plugin_per_client_context *) args->per_client_context;
+301c295
+<             return auth_user_pass_verify(context, pcc, argv, envp);
+---
+>             return auth_user_pass_verify(context, argv, envp);
+307,320d300
+< }
+< 
+< OPENVPN_EXPORT void *
+< openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
+< {
+<     plugin_log(PLOG_NOTE, MODULE, "FUNC: openvpn_plugin_client_constructor_v1");
+<     return calloc(1, sizeof(struct plugin_per_client_context));
+< }
+< 
+< OPENVPN_EXPORT void
+< openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *per_client_context)
+< {
+<     plugin_log(PLOG_NOTE, MODULE, "FUNC: openvpn_plugin_client_destructor_v1");
+<     free(per_client_context);

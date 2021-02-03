@@ -1,21 +1,13 @@
---- openvpn_defer_auth.c.orig	2018-06-29 19:39:02.000000000 +0000
-+++ openvpn_defer_auth.c	2018-06-29 19:42:04.000000000 +0000
-@@ -72,11 +72,9 @@
-     switch (type)
-     {
-         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
--            printf("OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY\n");
-             return auth_user_pass_verify(context, argv, envp);
- 
-         default:
--            printf("OPENVPN_PLUGIN_?\n");
-             return OPENVPN_PLUGIN_FUNC_ERROR;
-     }
- }
-@@ -85,6 +83,5 @@
- openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
- {
-     struct plugin_context *context = (struct plugin_context *) handle;
--    printf("FUNC: openvpn_plugin_close_v1\n");
-     free(context);
- }
+58c58
+< static char *MODULE = "defer/simple";
+---
+> static char *MODULE = "openvpn_defer_auth";
+85,86d84
+<     plugin_log(PLOG_NOTE, MODULE, "FUNC: openvpn_plugin_open_v3");
+< 
+103d100
+<     plugin_log(PLOG_NOTE, MODULE, "initialization succeeded");
+175d171
+<             plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY");
+188d183
+<     plugin_log(PLOG_NOTE, MODULE, "FUNC: openvpn_plugin_close_v1");

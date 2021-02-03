@@ -1,169 +1,130 @@
---- openvpn_defer_auth.c.orig	2018-06-29 19:35:18.000000000 +0000
-+++ openvpn_defer_auth.c	2018-06-29 19:39:02.000000000 +0000
-@@ -21,36 +21,6 @@
-  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-  */
- 
--/*
-- * This file implements a simple OpenVPN plugin module which
-- * will test deferred authentication and packet filtering.
-- *
-- * Will run on Windows or *nix.
-- *
-- * Sample usage:
-- *
-- * setenv test_deferred_auth 20
-- * setenv test_packet_filter 10
-- * plugin plugin/defer/simple.so
-- *
-- * This will enable deferred authentication to occur 20
-- * seconds after the normal TLS authentication process,
-- * and will cause a packet filter file to be generated 10
-- * seconds after the initial TLS negotiation, using
-- * {common-name}.pf as the source.
-- *
-- * Sample packet filter configuration:
-- *
-- * [CLIENTS DROP]
-- * +otherclient
-- * [SUBNETS DROP]
-- * +10.0.0.0/8
-- * -10.10.0.8
-- * [END]
-- *
-- * See the README file for build instructions.
-- */
--
- #include <stdio.h>
- #include <string.h>
- #include <stdlib.h>
-@@ -62,83 +32,19 @@
-  */
- 
- struct plugin_context {
--    int test_deferred_auth;
--    int test_packet_filter;
- };
- 
--/*
-- * Given an environmental variable name, search
-- * the envp array for its value, returning it
-- * if found or NULL otherwise.
-- */
--static const char *
--get_env(const char *name, const char *envp[])
--{
--    if (envp)
--    {
--        int i;
--        const int namelen = strlen(name);
--        for (i = 0; envp[i]; ++i)
--        {
--            if (!strncmp(envp[i], name, namelen))
--            {
--                const char *cp = envp[i] + namelen;
--                if (*cp == '=')
--                {
--                    return cp + 1;
--                }
--            }
--        }
--    }
--    return NULL;
--}
--
--/* used for safe printf of possible NULL strings */
--static const char *
--np(const char *str)
--{
--    if (str)
--    {
--        return str;
--    }
--    else
--    {
--        return "[NULL]";
--    }
--}
--
--static int
--atoi_null0(const char *str)
--{
--    if (str)
--    {
--        return atoi(str);
--    }
--    else
--    {
--        return 0;
--    }
--}
--
- OPENVPN_EXPORT openvpn_plugin_handle_t
- openvpn_plugin_open_v2(unsigned int *type_mask, const char *argv[], const char *envp[],
- 						struct openvpn_plugin_string_list **return_list)
- {
-     struct plugin_context *context;
- 
--    printf("FUNC: openvpn_plugin_open_v2\n");
--
-     /*
-      * Allocate our context
-      */
-     context = (struct plugin_context *) calloc(1, sizeof(struct plugin_context));
- 
--    context->test_deferred_auth = atoi_null0(get_env("test_deferred_auth", envp));
--    printf("TEST_DEFERRED_AUTH %d\n", context->test_deferred_auth);
--
--    context->test_packet_filter = atoi_null0(get_env("test_packet_filter", envp));
--    printf("TEST_PACKET_FILTER %d\n", context->test_packet_filter);
--
-     /*
-      * Which callbacks to intercept.
-      */
-@@ -151,44 +57,7 @@
- static int
- auth_user_pass_verify(struct plugin_context *context, const char *argv[], const char *envp[])
- {
--    if (context->test_deferred_auth)
--    {
--        /* get username/password from envp string array */
--        const char *username = get_env("username", envp);
--        const char *password = get_env("password", envp);
--
--        /* get auth_control_file filename from envp string array*/
--        const char *auth_control_file = get_env("auth_control_file", envp);
--
--        printf("DEFER u='%s' p='%s' acf='%s'\n",
--               np(username),
--               np(password),
--               np(auth_control_file));
--
--        /* Authenticate asynchronously in n seconds */
--        if (auth_control_file)
--        {
--            char buf[256];
--            int auth = 2;
--            sscanf(username, "%d", &auth);
--            snprintf(buf, sizeof(buf), "( sleep %d ; echo AUTH %s %d ; echo '' >%s ) &",
--                     context->test_deferred_auth,
--                     auth_control_file,
--                     auth,
--                     auth_control_file);
--            printf("%s\n", buf);
--            system(buf);
--            return OPENVPN_PLUGIN_FUNC_DEFERRED;
--        }
--        else
--        {
--            return OPENVPN_PLUGIN_FUNC_ERROR;
--        }
--    }
--    else
--    {
--        return OPENVPN_PLUGIN_FUNC_SUCCESS;
--    }
-+    return OPENVPN_PLUGIN_FUNC_SUCCESS;
- }
- 
- OPENVPN_EXPORT int
+24,40d23
+< /*
+<  * This file implements a simple OpenVPN plugin module which
+<  * will test deferred authentication.
+<  *
+<  * Will run on Windows or *nix.
+<  *
+<  * Sample usage:
+<  *
+<  * setenv test_deferred_auth 20
+<  * plugin plugin/defer/simple.so
+<  *
+<  * This will enable deferred authentication to occur 20
+<  * seconds after the normal TLS authentication process.
+<  *
+<  * See the README file for build instructions.
+<  */
+< 
+45d27
+< #include <fcntl.h>
+73d54
+<     int test_deferred_auth;
+79,132d59
+< /*
+<  * Given an environmental variable name, search
+<  * the envp array for its value, returning it
+<  * if found or NULL otherwise.
+<  */
+< static const char *
+< get_env(const char *name, const char *envp[])
+< {
+<     if (envp)
+<     {
+<         int i;
+<         const int namelen = strlen(name);
+<         for (i = 0; envp[i]; ++i)
+<         {
+<             if (!strncmp(envp[i], name, namelen))
+<             {
+<                 const char *cp = envp[i] + namelen;
+<                 if (*cp == '=')
+<                 {
+<                     return cp + 1;
+<                 }
+<             }
+<         }
+<     }
+<     return NULL;
+< }
+< 
+< /* used for safe printf of possible NULL strings */
+< static const char *
+< np(const char *str)
+< {
+<     if (str)
+<     {
+<         return str;
+<     }
+<     else
+<     {
+<         return "[NULL]";
+<     }
+< }
+< 
+< static int
+< atoi_null0(const char *str)
+< {
+<     if (str)
+<     {
+<         return atoi(str);
+<     }
+<     else
+<     {
+<         return 0;
+<     }
+< }
+< 
+169,171d95
+<     context->test_deferred_auth = atoi_null0(get_env("test_deferred_auth", envp));
+<     plugin_log(PLOG_NOTE, MODULE, "TEST_DEFERRED_AUTH %d", context->test_deferred_auth);
+< 
+195,217d118
+<     if (!context->test_deferred_auth)
+<     {
+<         return OPENVPN_PLUGIN_FUNC_SUCCESS;
+<     }
+< 
+<     /* get username/password from envp string array */
+<     const char *username = get_env("username", envp);
+<     const char *password = get_env("password", envp);
+< 
+<     /* get auth_control_file filename from envp string array*/
+<     const char *auth_control_file = get_env("auth_control_file", envp);
+< 
+<     plugin_log(PLOG_NOTE, MODULE, "DEFER u='%s' p='%s' acf='%s'",
+<                np(username),
+<                np(password),
+<                np(auth_control_file));
+< 
+<     /* Authenticate asynchronously in n seconds */
+<     if (!auth_control_file)
+<     {
+<         return OPENVPN_PLUGIN_FUNC_ERROR;
+<     }
+< 
+250,252c151
+<      *  - never call "return" now (would mess up openvpn)
+<      *  - return status is communicated by file
+<      *  - then exit()
+---
+>      * FIXME - defer'ed goes here
+256,273d154
+<     plugin_log(PLOG_NOTE, MODULE, "in async/deferred handler, sleep(%d)", context->test_deferred_auth);
+<     sleep(context->test_deferred_auth);
+< 
+<     /* now signal success state to openvpn */
+<     int fd = open(auth_control_file, O_WRONLY);
+<     if (fd < 0)
+<     {
+<         plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "open('%s') failed", auth_control_file);
+<         exit(1);
+<     }
+< 
+<     plugin_log(PLOG_NOTE, MODULE, "auth_user_pass_verify: done" );
+< 
+<     if (write(fd, "1", 1) != 1)
+<     {
+<         plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "write to '%s' failed", auth_control_file );
+<     }
+<     close(fd);

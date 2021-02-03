@@ -1,25 +1,9 @@
---- openvpn_defer_auth.c.orig	2018-06-29 21:14:01.000000000 +0000
-+++ openvpn_defer_auth.c	2018-06-29 21:14:35.000000000 +0000
-@@ -24,6 +24,7 @@
- #include <stdio.h>
- #include <string.h>
- #include <stdlib.h>
-+#include <sys/wait.h>
- 
- #include "openvpn-plugin.h"
- 
-@@ -35,6 +36,14 @@
-     char *script_path;
- };
- 
-+void handle_sigchld(int sig)
-+{
-+    /*
-+     * nonblocking wait (WNOHANG) for any child (-1) to come back
-+     */
-+    while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
-+}
-+
- OPENVPN_EXPORT openvpn_plugin_handle_t
- openvpn_plugin_open_v2(unsigned int *type_mask, const char *argv[], const char *envp[],
- 						struct openvpn_plugin_string_list **return_list)
+60a61,68
+> void handle_sigchld(int sig)
+> {
+>     /*
+>      * nonblocking wait (WNOHANG) for any child (-1) to come back
+>      */
+>     while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
+> }
+> 

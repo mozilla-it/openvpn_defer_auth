@@ -5,7 +5,7 @@ PREFIX	:= /usr
 INSTALL	:= install
 CFLAGS	:= -fPIC
 # RPM info
-VERSION := 1.2.0
+VERSION := 1.3.0
 GIT_VERSION := $(shell git rev-parse HEAD)
 RPM_ITERATION := 1
 FPM_DIR := fpm_tmp_build_dir
@@ -38,7 +38,7 @@ all: preflight
 preflight:
 	@if [ ! -f openvpn-plugin.h ]; then \
 		echo "The openvpn-plugin.h file is missing.  Fetch a copy from the openvpn tarball."; \
-		echo "  https://openvpn.net/index.php/open-source/downloads.html"; \
+		echo "  https://openvpn.net/community-downloads/"; \
 		false; \
 	fi
 

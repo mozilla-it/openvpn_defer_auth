@@ -1,28 +1,32 @@
-76,79d75
+111,116d110
 < struct plugin_per_client_context {
 <     int n_calls;
+<     bool generated_pf_file;
 < };
 < 
-197d192
+< 
+275d268
 <                       struct plugin_per_client_context *pcc,
-296d290
+381d373
 <     struct plugin_per_client_context *pcc = (struct plugin_per_client_context *) args->per_client_context;
-301c295
+386c378
 <             return auth_user_pass_verify(context, pcc, argv, envp);
 ---
 >             return auth_user_pass_verify(context, argv, envp);
-307,320d300
+392,407d383
 < }
 < 
 < OPENVPN_EXPORT void *
 < openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
 < {
-<     plugin_log(PLOG_NOTE, MODULE, "FUNC: openvpn_plugin_client_constructor_v1");
+<     struct plugin_context *context = (struct plugin_context *) handle;
+<     plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_client_constructor_v1");
 <     return calloc(1, sizeof(struct plugin_per_client_context));
 < }
 < 
 < OPENVPN_EXPORT void
 < openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *per_client_context)
 < {
-<     plugin_log(PLOG_NOTE, MODULE, "FUNC: openvpn_plugin_client_destructor_v1");
+<     struct plugin_context *context = (struct plugin_context *) handle;
+<     plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_client_destructor_v1");
 <     free(per_client_context);

@@ -1,9 +1,8 @@
-129c129
+151c151
 < auth_user_pass_verify(struct plugin_context *context,
 ---
 > deferred_auth_handler(struct plugin_context *context,
-131a132,143
->     pid_t pid;
+154a155,165
 >     struct sigaction sa;
 >     char *script = context->script_path;
 > 
@@ -15,12 +14,13 @@
 >         return OPENVPN_PLUGIN_FUNC_ERROR;
 >     }
 > 
-164c176
+188,189c199,200
 <      * FIXME - defer'ed goes here
+<      *  - then exit()
 ---
 >      *  - return status is communicated by file which we pass as an env
-168,169c180,184
-< 
+>      *  - then exec / exit()
+194c205,209
 <     exit(0);
 ---
 >     execve(script, &script, (char *const*)envp);
@@ -28,7 +28,7 @@
 >      * Since we exec'ed we should never get here.  But just in case, exit hard.
 >      */
 >     exit(127);
-188c203
+215c230
 <             return auth_user_pass_verify(context, argv, envp);
 ---
 >             return deferred_auth_handler(context, argv, envp);

@@ -1,12 +1,19 @@
-54a55
+42a43
 >     char *script_path;
-92a94,100
->     if (args->argv[1]) {
+107a109,122
+>     if (args->argv[1] && !args->argv[2])
+>     {
 >         context->script_path = strdup(args->argv[1]);
 >         if (context->script_path == NULL) {
->             plugin_log(PLOG_NOTE, MODULE, "Unable to allocate memory");
+>             plog(context, PLOG_NOTE, MODULE, "Unable to allocate memory");
 >             return OPENVPN_PLUGIN_FUNC_ERROR;
 >         }
 >     }
-183a192
+>     else
+>     {
+>         plog(context, PLOG_ERR, "Too many arguments provided");
+>         goto error;
+>     }
+> 
+202a218
 >     free(context->script_path);

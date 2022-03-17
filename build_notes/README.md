@@ -4,7 +4,9 @@ This plugin is vital for openvpn using deferred authentication.  It is stable as
 
 Setting Up
 ---
-This all begins with OpenVPN's sample 'defer' plugin code, <https://github.com/OpenVPN/openvpn/blob/master/sample/sample-plugins/defer/simple.c>.
+This all began with OpenVPN's sample 'defer' plugin code, <https://github.com/OpenVPN/openvpn/blob/fdfbd4441c2225dc69431c57d18291e103c466cf/sample/sample-plugins/defer/simple.c>
+Due to a bug in handling multiple deferred plugins, they retired this in 2022-03, so we're back here to adapt to the replacement ```multi-auth.c```:
+<https://github.com/OpenVPN/openvpn/blob/79a111c7e16d157278495cb5f4c52eab2229b68e/sample/sample-plugins/defer/multi-auth.c>
 
 We'll also refer to its header, <https://github.com/OpenVPN/openvpn/blob/master/include/openvpn-plugin.h.in>.
 * Note here that this is a .in file instead of a .h, just to have a file linked.  The place to get the __actual__ header is [the source tarball](https://openvpn.net/community-downloads/) itself.  __DON'T__ use the .in file to compile with.
@@ -13,19 +15,19 @@ The .h is "easy" to fix by hand-fetching it from source.  The hard part is makin
 
 Save the sample 'defer' plugin file:
 
-```curl -s -L -o openvpn_defer_auth.c https://raw.githubusercontent.com/OpenVPN/openvpn/fdfbd4441c2225dc69431c57d18291e103c466cf/sample/sample-plugins/defer/simple.c```
+```curl -s -L -o openvpn_defer_auth.c https://raw.githubusercontent.com/OpenVPN/openvpn/79a111c7e16d157278495cb5f4c52eab2229b68e/sample/sample-plugins/defer/multi-auth.c```
 
 This is the basis of our script (and note that I'm listing the specific commit, so you can see how up-to-date things are).  Now we start editing it.
 
 Edits
 ---
 
-This directory contains patches demonstrating how/why we strip down the ```simple.c``` file (named as ```openvpn_defer_auth.c```), and then build it back up.
+This directory contains patches demonstrating how/why we strip down the ```multi-auth.c``` file (named as ```openvpn_defer_auth.c```), and then build it back up.
 
 patch01.diff
-* In openvpn_plugin_open_v3 and openvpn_plugin_func_v3, strip out nonessential codepaths / functions they involve, especially packet filter.
-  * We only need OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY
-  * this takes out tls_final(), now unused
+* Removes 'config.h' which is neither present nor needed (!?)
+* Add an 'UNUSED' macro to highlight variables we don't use.
+  * This 'misses' some, but they're obviated in later patches.
 
 patch02.diff
 * delete openvpn_plugin_client_constructor_v1 and openvpn_plugin_client_destructor_v1 - we don't use them.
@@ -34,14 +36,18 @@ patch02.diff
 patch03.diff
 * gut the existing openvpn_plugin_open_v3 useless functionality:
   * This is all the "things the sample is supposed to do" that doesn't help us.
-  * remove test_deferred_auth
+  * remove test_deferred_auth - the whole point is we want deferred ON, not optional.
   * remove the comments at the top of the script specific to the dummy version (no longer applicable)
-  * This guts auth_user_pass_verify...
+  * remove everything that reads username/password from env's.  We are a passthrough.
+  * remove everything that manages auth_control_file from env's.  We are a passthrough.
+    * ... which takes out stdarg.h
+  * This takes out do_auth_user_pass...
+    * ... which takes out stdbool.h
     * ... which takes out the use of atoi_null0 at the same time
     * ... which then removes np and get_env
 
 patch04.diff
-* delete plugin_log success calls that we don't want.
+* delete plog logging calls that we don't want, and fix the plugin name.
 
 patch05.diff  -  the beginning of creating
 * add 'script_path' to the context, so keep track of what script to call.
@@ -55,7 +61,7 @@ patch07.diff
 * adapt auth_user_pass_verify into the deferred auth handler
   * This is the actual INTERESTING piece.
 
-With all of these in place, you now have a supremely boring piece of C code.  It does async/deferred auth queries for openvpn, which is pretty essential for multi-user.
+With all of these in place, you now have a supremely boring piece of C code.  It does async/deferred auth queries for openvpn, which is pretty essential for human-interactive logins (e.g 2FA).
 
 Revisting
 ---

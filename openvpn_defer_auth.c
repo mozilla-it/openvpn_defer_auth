@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -25,13 +25,48 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
 #include "openvpn-plugin.h"
 
-/* Pointers to functions exported from openvpn */
-static plugin_log_t plugin_log = NULL;
+#define UNUSED(x) (void)(x)
+
+static char *MODULE = "openvpn_defer_auth";
+
+/*
+ * Our context, where we keep our state.
+ */
+
+struct plugin_context {
+    char *script_path;
+};
+
+void handle_sigchld(int sig)
+{
+    UNUSED(sig);
+    /*
+     * nonblocking wait (WNOHANG) for any child (-1) to come back
+     */
+    while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
+}
+
+/* local wrapping of the log function, to add more details */
+static plugin_vlog_t _plugin_vlog_func = NULL;
+static void plog(const struct plugin_context *ctx, int flags, char *fmt, ...)
+{
+    UNUSED(ctx);
+    char logid[129];
+
+    snprintf(logid, 128, "%s", MODULE);
+
+    va_list arglist;
+    va_start(arglist, fmt);
+    _plugin_vlog_func(flags, logid, fmt, arglist);
+    va_end(arglist);
+}
+
 
 /*
  * Constants indicating minimum API and struct versions by the functions
@@ -47,24 +82,6 @@ static plugin_log_t plugin_log = NULL;
 #define OPENVPN_PLUGIN_VERSION_MIN 3
 #define OPENVPN_PLUGIN_STRUCTVER_MIN 5
 
-/*
- * Our context, where we keep our state.
- */
-
-struct plugin_context {
-    char *script_path;
-};
-
-/* module name for plugin_log() */
-static char *MODULE = "openvpn_defer_auth";
-
-void handle_sigchld(int sig)
-{
-    /*
-     * nonblocking wait (WNOHANG) for any child (-1) to come back
-     */
-    while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
-}
 
 /* Require a minimum OpenVPN Plugin API */
 OPENVPN_EXPORT int
@@ -79,9 +96,6 @@ openvpn_plugin_open_v3(const int v3structver,
                        struct openvpn_plugin_args_open_in const *args,
                        struct openvpn_plugin_args_open_return *ret)
 {
-    const char **envp = args->envp;       /* environment variables */
-    struct plugin_context *context;
-
     if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
     {
         fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
@@ -89,47 +103,55 @@ openvpn_plugin_open_v3(const int v3structver,
     }
 
     /* Save global pointers to functions exported from openvpn */
-    plugin_log = args->callbacks->plugin_log;
+    _plugin_vlog_func = args->callbacks->plugin_vlog;
 
     /*
      * Allocate our context
      */
+    struct plugin_context *context = NULL;
     context = (struct plugin_context *) calloc(1, sizeof(struct plugin_context));
     if (!context)
     {
         goto error;
     }
-    if (args->argv[1]) {
+
+    if (args->argv[1] && !args->argv[2])
+    {
         context->script_path = strdup(args->argv[1]);
         if (context->script_path == NULL) {
-            plugin_log(PLOG_NOTE, MODULE, "Unable to allocate memory");
+            plog(context, PLOG_NOTE, MODULE, "Unable to allocate memory");
             return OPENVPN_PLUGIN_FUNC_ERROR;
         }
+    }
+    else
+    {
+        plog(context, PLOG_ERR, "Too many arguments provided");
+        goto error;
     }
 
     /*
      * Which callbacks to intercept.
      */
-    ret->type_mask =
-        OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY);
-
+    ret->type_mask = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY);
     ret->handle = (openvpn_plugin_handle_t *) context;
+
     return OPENVPN_PLUGIN_FUNC_SUCCESS;
 
 error:
+    plog(context, PLOG_NOTE, "initialization failed");
     if (context)
     {
         free(context);
     }
-    plugin_log(PLOG_NOTE, MODULE, "initialization failed");
     return OPENVPN_PLUGIN_FUNC_ERROR;
 }
+
 
 static int
 deferred_auth_handler(struct plugin_context *context,
                       const char *argv[], const char *envp[])
 {
-    pid_t pid;
+    UNUSED(argv);
     struct sigaction sa;
     char *script = context->script_path;
 
@@ -163,7 +185,7 @@ deferred_auth_handler(struct plugin_context *context,
     pid_t p2 = fork();
     if (p2 < 0)
     {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "BACKGROUND: fork(2) failed");
+        plog(context, PLOG_ERR|PLOG_ERRNO, "BACKGROUND: fork(2) failed");
         exit(1);
     }
 
@@ -173,10 +195,13 @@ deferred_auth_handler(struct plugin_context *context,
     }
 
     /* (grand-)child process
+     *  - never call "return" now (would mess up openvpn)
      *  - return status is communicated by file which we pass as an env
+     *  - then exec / exit()
      */
 
     /* do mighty complicated work that will really take time here... */
+
     execve(script, &script, (char *const*)envp);
     /*
      * Since we exec'ed we should never get here.  But just in case, exit hard.
@@ -184,11 +209,13 @@ deferred_auth_handler(struct plugin_context *context,
     exit(127);
 }
 
+
 OPENVPN_EXPORT int
 openvpn_plugin_func_v3(const int v3structver,
                        struct openvpn_plugin_args_func_in const *args,
                        struct openvpn_plugin_args_func_return *ret)
 {
+    UNUSED(ret);
     if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
     {
         fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
@@ -203,7 +230,7 @@ openvpn_plugin_func_v3(const int v3structver,
             return deferred_auth_handler(context, argv, envp);
 
         default:
-            plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_?");
+            plog(context, PLOG_NOTE, "OPENVPN_PLUGIN_?");
             return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 }

@@ -1,13 +1,13 @@
-58c58
-< static char *MODULE = "defer/simple";
+36c36
+< static char *MODULE = "multi-auth";
 ---
 > static char *MODULE = "openvpn_defer_auth";
-85,86d84
-<     plugin_log(PLOG_NOTE, MODULE, "FUNC: openvpn_plugin_open_v3");
+98,99d97
+<     plog(NULL, PLOG_NOTE, "FUNC: openvpn_plugin_open_v3");
 < 
-103d100
-<     plugin_log(PLOG_NOTE, MODULE, "initialization succeeded");
-175d171
-<             plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY");
-188d183
-<     plugin_log(PLOG_NOTE, MODULE, "FUNC: openvpn_plugin_close_v1");
+116d113
+<     plog(context, PLOG_NOTE, "initialization succeeded");
+194d190
+<             plog(context, PLOG_NOTE, "OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY");
+207d202
+<     plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_close_v1");

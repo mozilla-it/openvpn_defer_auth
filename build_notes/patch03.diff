@@ -1,26 +1,50 @@
-24,40d23
+24,46d23
 < /*
 <  * This file implements a simple OpenVPN plugin module which
-<  * will test deferred authentication.
+<  * can do either an instant authentication or a deferred auth.
+<  * The purpose of this plug-in is to test multiple auth plugins
+<  * in the same configuration file
 <  *
-<  * Will run on Windows or *nix.
+<  * Plugin arguments:
+<  *
+<  *   multi-auth.so LOG_ID  DEFER_TIME  USERNAME  PASSWORD
+<  *
+<  * LOG_ID is just an ID string used to separate auth results in the log
+<  * DEFER_TIME is the time to defer the auth. Set to 0 to return immediately
+<  * USERNAME is the username for a valid authentication
+<  * PASSWORD is the password for a valid authentication
+<  *
+<  * The DEFER_TIME time unit is in ms.
 <  *
 <  * Sample usage:
 <  *
-<  * setenv test_deferred_auth 20
-<  * plugin plugin/defer/simple.so
+<  * plugin multi-auth.so MA_1 0 foo bar  # Instant reply user:foo pass:bar
+<  * plugin multi-auth.so MA_2 5000 fux bax # Defer 5 sec, user:fux pass: bax
 <  *
-<  * This will enable deferred authentication to occur 20
-<  * seconds after the normal TLS authentication process.
-<  *
-<  * See the README file for build instructions.
 <  */
-< 
-45d27
-< #include <fcntl.h>
-73d54
+50d26
+< #include <stdarg.h>
+52d27
+< #include <stdbool.h>
+68,71d42
 <     int test_deferred_auth;
-79,132d59
+<     char *authid;
+<     char *test_valid_user;
+<     char *test_valid_pass;
+77a49
+>     UNUSED(ctx);
+80,87c52
+<     if (ctx && ctx->authid)
+<     {
+<         snprintf(logid, 128, "%s[%s]", MODULE, ctx->authid);
+<     }
+<     else
+<     {
+<         snprintf(logid, 128, "%s", MODULE);
+<     }
+---
+>     snprintf(logid, 128, "%s", MODULE);
+111,164d75
 < /*
 <  * Given an environmental variable name, search
 <  * the envp array for its value, returning it
@@ -75,27 +99,72 @@
 <     }
 < }
 < 
-169,171d95
-<     context->test_deferred_auth = atoi_null0(get_env("test_deferred_auth", envp));
-<     plugin_log(PLOG_NOTE, MODULE, "TEST_DEFERRED_AUTH %d", context->test_deferred_auth);
-< 
-195,217d118
-<     if (!context->test_deferred_auth)
+199,217d109
+<     /* simple module argument parsing */
+<     if ((args->argv[4]) && !args->argv[5])
 <     {
-<         return OPENVPN_PLUGIN_FUNC_SUCCESS;
+<         context->authid = strdup(args->argv[1]);
+<         context->test_deferred_auth = atoi_null0(args->argv[2]);
+<         context->test_valid_user = strdup(args->argv[3]);
+<         context->test_valid_pass = strdup(args->argv[4]);
+<     }
+<     else
+<     {
+<         plog(context, PLOG_ERR, "Too many arguments provided");
+<         goto error;
 <     }
 < 
+<     if (context->test_deferred_auth > 0)
+<     {
+<         plog(context, PLOG_NOTE, "TEST_DEFERRED_AUTH %d", context->test_deferred_auth);
+<     }
+< 
+236,265d127
+< static bool
+< do_auth_user_pass(struct plugin_context *context,
+<                   const char *username, const char *password)
+< {
+<     plog(context, PLOG_NOTE,
+<         "expect_user=%s, received_user=%s, expect_passw=%s, received_passw=%s",
+<         np(context->test_valid_user),
+<         np(username),
+<         np(context->test_valid_pass),
+<         np(password));
+< 
+<     if (context->test_valid_user && context->test_valid_pass)
+<     {
+<         if ((strcmp(context->test_valid_user, username) != 0)
+<             || (strcmp(context->test_valid_pass, password) != 0))
+<         {
+<             plog(context, PLOG_ERR,
+<                 "User/Password auth result: FAIL");
+<             return false;
+<         }
+<         else
+<         {
+<             plog(context, PLOG_NOTE,
+<                 "User/Password auth result: PASS");
+<             return true;
+<         }
+<     }
+<     return false;
+< }
+< 
+272,292d133
 <     /* get username/password from envp string array */
 <     const char *username = get_env("username", envp);
 <     const char *password = get_env("password", envp);
 < 
+<     if (!context->test_deferred_auth)
+<     {
+<         plog(context, PLOG_NOTE, "Direct authentication");
+<         return do_auth_user_pass(context, username, password) ?
+<                 OPENVPN_PLUGIN_FUNC_SUCCESS : OPENVPN_PLUGIN_FUNC_ERROR;
+<     }
+< 
 <     /* get auth_control_file filename from envp string array*/
 <     const char *auth_control_file = get_env("auth_control_file", envp);
-< 
-<     plugin_log(PLOG_NOTE, MODULE, "DEFER u='%s' p='%s' acf='%s'",
-<                np(username),
-<                np(password),
-<                np(auth_control_file));
+<     plog(context, PLOG_NOTE, "auth_control_file=%s", auth_control_file);
 < 
 <     /* Authenticate asynchronously in n seconds */
 <     if (!auth_control_file)
@@ -103,28 +172,32 @@
 <         return OPENVPN_PLUGIN_FUNC_ERROR;
 <     }
 < 
-250,252c151
-<      *  - never call "return" now (would mess up openvpn)
+326c167
 <      *  - return status is communicated by file
-<      *  - then exit()
 ---
 >      * FIXME - defer'ed goes here
-256,273d154
-<     plugin_log(PLOG_NOTE, MODULE, "in async/deferred handler, sleep(%d)", context->test_deferred_auth);
-<     sleep(context->test_deferred_auth);
+331,354d171
+<     plog(context, PLOG_NOTE, "in async/deferred handler, usleep(%d)",
+<         context->test_deferred_auth*1000);
+<     usleep(context->test_deferred_auth*1000);
 < 
 <     /* now signal success state to openvpn */
 <     int fd = open(auth_control_file, O_WRONLY);
 <     if (fd < 0)
 <     {
-<         plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "open('%s') failed", auth_control_file);
+<         plog(context, PLOG_ERR|PLOG_ERRNO,
+<             "open('%s') failed", auth_control_file);
 <         exit(1);
 <     }
 < 
-<     plugin_log(PLOG_NOTE, MODULE, "auth_user_pass_verify: done" );
-< 
-<     if (write(fd, "1", 1) != 1)
+<     char result[2] = "0\0";
+<     if (do_auth_user_pass(context, username, password))
 <     {
-<         plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "write to '%s' failed", auth_control_file );
+<         result[0] = '1';
+<     }
+< 
+<     if (write(fd, result, 1) != 1)
+<     {
+<         plog(context, PLOG_ERR|PLOG_ERRNO, "write to '%s' failed", auth_control_file );
 <     }
 <     close(fd);

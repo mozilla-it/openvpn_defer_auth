@@ -1,6 +1,7 @@
-60a61,68
+45a46,54
 > void handle_sigchld(int sig)
 > {
+>     UNUSED(sig);
 >     /*
 >      * nonblocking wait (WNOHANG) for any child (-1) to come back
 >      */

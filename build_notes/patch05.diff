@@ -1,19 +1,39 @@
-42a43
->     char *script_path;
-107a109,122
->     if (args->argv[1] && !args->argv[2])
->     {
->         context->script_path = strdup(args->argv[1]);
->         if (context->script_path == NULL) {
->             plog(context, PLOG_NOTE, MODULE, "Unable to allocate memory");
->             return OPENVPN_PLUGIN_FUNC_ERROR;
->         }
->     }
->     else
->     {
->         plog(context, PLOG_ERR, "Too many arguments provided");
->         goto error;
->     }
-> 
-202a218
->     free(context->script_path);
+--- openvpn_defer_auth.c	2024-09-09 12:17:58
++++ openvpn_defer_auth.c	2024-09-09 12:25:50
+@@ -40,6 +40,7 @@
+  */
+
+ struct plugin_context {
++    char *script_path;
+ };
+
+ /* local wrapping of the log function, to add more details */
+@@ -106,6 +107,21 @@
+         goto error;
+     }
+
++    if (args->argv[1] && !args->argv[2])
++    {
++        context->script_path = strdup(args->argv[1]);
++        if (!context->script_path)
++        {
++            plog(context, PLOG_ERR, "Out of memory");
++            goto error;
++        }
++    }
++    else
++    {
++        plog(context, PLOG_ERR, "Too many arguments provided");
++        goto error;
++    }
++
+     /*
+      * Which callbacks to intercept.
+      */
+@@ -201,5 +217,6 @@
+ openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
+ {
+     struct plugin_context *context = (struct plugin_context *) handle;
++    free(context->script_path);
+     free(context);
+ }

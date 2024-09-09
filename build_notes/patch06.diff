@@ -1,10 +1,18 @@
-45a46,54
-> void handle_sigchld(int sig)
-> {
->     UNUSED(sig);
->     /*
->      * nonblocking wait (WNOHANG) for any child (-1) to come back
->      */
->     while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
-> }
-> 
+--- openvpn_defer_auth.c	2024-09-09 12:25:50
++++ openvpn_defer_auth.c	2024-09-09 12:28:23
+@@ -43,6 +43,15 @@
+     char *script_path;
+ };
+
++void handle_sigchld(int sig)
++{
++    UNUSED(sig);
++    /*
++     * nonblocking wait (WNOHANG) for any child (-1) to come back
++     */
++    while(waitpid((pid_t)(-1), 0, WNOHANG) > 0) {}
++}
++
+ /* local wrapping of the log function, to add more details */
+ static plugin_vlog_t _plugin_vlog_func = NULL;
+ static void

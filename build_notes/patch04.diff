@@ -1,13 +1,43 @@
-36c36
-< static char *MODULE = "multi-auth";
----
-> static char *MODULE = "openvpn_defer_auth";
-98,99d97
-<     plog(NULL, PLOG_NOTE, "FUNC: openvpn_plugin_open_v3");
-< 
-116d113
-<     plog(context, PLOG_NOTE, "initialization succeeded");
-194d190
-<             plog(context, PLOG_NOTE, "OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY");
-207d202
-<     plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_close_v1");
+--- openvpn_defer_auth.c	2024-09-09 12:18:15
++++ openvpn_defer_auth.c	2024-09-09 12:17:58
+@@ -33,7 +33,7 @@
+
+ #define UNUSED(x) (void)(x)
+
+-static char *MODULE = "multi-auth";
++static char *MODULE = "openvpn_defer_auth";
+
+ /*
+  * Our context, where we keep our state.
+@@ -96,8 +96,6 @@
+     /* Save global pointers to functions exported from openvpn */
+     _plugin_vlog_func = args->callbacks->plugin_vlog;
+
+-    plog(NULL, PLOG_NOTE, "FUNC: openvpn_plugin_open_v3");
+-
+     /*
+      * Allocate our context
+      */
+@@ -114,7 +112,6 @@
+     ret->type_mask = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY);
+     ret->handle = (openvpn_plugin_handle_t *) context;
+
+-    plog(context, PLOG_NOTE, "initialization succeeded");
+     return OPENVPN_PLUGIN_FUNC_SUCCESS;
+
+ error:
+@@ -192,7 +189,6 @@
+     switch (args->type)
+     {
+         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
+-            plog(context, PLOG_NOTE, "OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY");
+             return auth_user_pass_verify(context, argv, envp);
+
+         default:
+@@ -205,6 +201,5 @@
+ openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
+ {
+     struct plugin_context *context = (struct plugin_context *) handle;
+-    plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_close_v1");
+     free(context);
+ }

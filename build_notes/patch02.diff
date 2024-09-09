@@ -1,32 +1,61 @@
-111,116d110
-< struct plugin_per_client_context {
-<     int n_calls;
-<     bool generated_pf_file;
-< };
-< 
-< 
-275d268
-<                       struct plugin_per_client_context *pcc,
-381d373
-<     struct plugin_per_client_context *pcc = (struct plugin_per_client_context *) args->per_client_context;
-386c378
-<             return auth_user_pass_verify(context, pcc, argv, envp);
----
->             return auth_user_pass_verify(context, argv, envp);
-392,407d383
-< }
-< 
-< OPENVPN_EXPORT void *
-< openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
-< {
-<     struct plugin_context *context = (struct plugin_context *) handle;
-<     plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_client_constructor_v1");
-<     return calloc(1, sizeof(struct plugin_per_client_context));
-< }
-< 
-< OPENVPN_EXPORT void
-< openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *per_client_context)
-< {
-<     struct plugin_context *context = (struct plugin_context *) handle;
-<     plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_client_destructor_v1");
-<     free(per_client_context);
+--- openvpn_defer_auth.c	2024-09-09 11:30:01
++++ openvpn_defer_auth.c	2024-09-09 11:38:04
+@@ -109,12 +109,6 @@
+ #define OPENVPN_PLUGIN_STRUCTVER_MIN 5
+
+
+-struct plugin_per_client_context {
+-    int n_calls;
+-    bool generated_pf_file;
+-};
+-
+-
+ /*
+  * Given an environmental variable name, search
+  * the envp array for its value, returning it
+@@ -288,7 +282,6 @@
+
+ static int
+ auth_user_pass_verify(struct plugin_context *context,
+-                      struct plugin_per_client_context *pcc,
+                       const char *argv[], const char *envp[])
+ {
+     UNUSED(argv);
+@@ -394,36 +387,19 @@
+     const char **argv = args->argv;
+     const char **envp = args->envp;
+     struct plugin_context *context = (struct plugin_context *) args->handle;
+-    struct plugin_per_client_context *pcc = (struct plugin_per_client_context *) args->per_client_context;
+     switch (args->type)
+     {
+         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
+             plog(context, PLOG_NOTE, "OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY");
+-            return auth_user_pass_verify(context, pcc, argv, envp);
++            return auth_user_pass_verify(context, argv, envp);
+
+         default:
+             plog(context, PLOG_NOTE, "OPENVPN_PLUGIN_?");
+             return OPENVPN_PLUGIN_FUNC_ERROR;
+     }
+-}
+-
+-OPENVPN_EXPORT void *
+-openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
+-{
+-    struct plugin_context *context = (struct plugin_context *) handle;
+-    plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_client_constructor_v1");
+-    return calloc(1, sizeof(struct plugin_per_client_context));
+ }
+
+ OPENVPN_EXPORT void
+-openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *per_client_context)
+-{
+-    struct plugin_context *context = (struct plugin_context *) handle;
+-    plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_client_destructor_v1");
+-    free(per_client_context);
+-}
+-
+-OPENVPN_EXPORT void
+ openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
+ {
+     struct plugin_context *context = (struct plugin_context *) handle;

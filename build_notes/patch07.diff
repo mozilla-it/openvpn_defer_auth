@@ -1,34 +1,55 @@
-151c151
-< auth_user_pass_verify(struct plugin_context *context,
----
-> deferred_auth_handler(struct plugin_context *context,
-154a155,165
->     struct sigaction sa;
->     char *script = context->script_path;
-> 
->     sigemptyset(&sa.sa_mask);
->     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
->     sa.sa_handler = &handle_sigchld;
-> 
->     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
->         return OPENVPN_PLUGIN_FUNC_ERROR;
->     }
-> 
-188,189c199,200
-<      * FIXME - defer'ed goes here
-<      *  - then exit()
----
->      *  - return status is communicated by file which we pass as an env
->      *  - then exec / exit()
-194c205,209
-<     exit(0);
----
->     execve(script, &script, (char *const*)envp);
->     /*
->      * Since we exec'ed we should never get here.  But just in case, exit hard.
->      */
->     exit(127);
-215c230
-<             return auth_user_pass_verify(context, argv, envp);
----
->             return deferred_auth_handler(context, argv, envp);
+--- openvpn_defer_auth.c	2024-09-09 12:28:23
++++ openvpn_defer_auth.c	2024-09-09 12:32:33
+@@ -150,10 +150,21 @@
+
+
+ static int
+-auth_user_pass_verify(struct plugin_context *context,
++deferred_auth_handler(struct plugin_context *context,
+                       const char *argv[], const char *envp[])
+ {
+     UNUSED(argv);
++    struct sigaction sa;
++    char *script = context->script_path;
++
++    sigemptyset(&sa.sa_mask);
++    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
++    sa.sa_handler = &handle_sigchld;
++
++    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
++        return OPENVPN_PLUGIN_FUNC_ERROR;
++    }
++
+     /* we do not want to complicate our lives with having to wait()
+      * for child processes (so they are not zombiefied) *and* we MUST NOT
+      * fiddle with signal handlers (= shared with openvpn main), so
+@@ -187,13 +198,17 @@
+
+     /* (grand-)child process
+      *  - never call "return" now (would mess up openvpn)
+-     * FIXME - defer'ed goes here
+-     *  - then exit()
++     *  - return status is communicated by file which we pass as an env
++     *  - then exec / exit()
+      */
+
+     /* do mighty complicated work that will really take time here... */
+
+-    exit(0);
++    execve(script, &script, (char *const*)envp);
++    /*
++     * Since we exec'ed we should never get here.  But just in case, exit hard.
++     */
++    exit(127);
+ }
+
+
+@@ -214,7 +229,7 @@
+     switch (args->type)
+     {
+         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
+-            return auth_user_pass_verify(context, argv, envp);
++            return deferred_auth_handler(context, argv, envp);
+
+         default:
+             plog(context, PLOG_NOTE, "OPENVPN_PLUGIN_?");

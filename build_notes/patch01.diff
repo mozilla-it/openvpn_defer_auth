@@ -1,9 +1,35 @@
-47d46
-< #include "config.h"
-59a59,60
-> #define UNUSED(x) (void)(x)
-> 
-276a278
->     UNUSED(argv);
-369a372
->     UNUSED(ret);
+--- openvpn_defer_auth.c	2024-09-09 11:05:51
++++ openvpn_defer_auth.c	2024-09-09 11:30:01
+@@ -44,7 +44,6 @@
+  * plugin multi-auth.so MA_2 5000 fux bax # Defer 5 sec, user:fux pass: bax
+  *
+  */
+-#include "config.h"
+ #include <stdio.h>
+ #include <string.h>
+ #include <stdlib.h>
+@@ -57,6 +56,8 @@
+
+ #include "openvpn-plugin.h"
+
++#define UNUSED(x) (void)(x)
++
+ static char *MODULE = "multi-auth";
+
+ /*
+@@ -290,6 +291,7 @@
+                       struct plugin_per_client_context *pcc,
+                       const char *argv[], const char *envp[])
+ {
++    UNUSED(argv);
+     /* get username/password from envp string array */
+     const char *username = get_env("username", envp);
+     const char *password = get_env("password", envp);
+@@ -383,6 +385,7 @@
+                        struct openvpn_plugin_args_func_in const *args,
+                        struct openvpn_plugin_args_func_return *ret)
+ {
++    UNUSED(ret);
+     if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
+     {
+         fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);

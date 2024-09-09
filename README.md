@@ -12,7 +12,7 @@ After installing the ```openvpn_defer_auth.so``` file, add something like this t
 
 ```plugin /usr/lib64/openvpn/plugins/openvpn_defer_auth.so /usr/lib/openvpn/plugins/duo_openvpn.py```
 
-This tells openvpn to use your plugin... and your plugin will fork+exec THAT executable (in this case, a python script) to do the authentication and return success/failure.
+This tells openvpn to use your plugin... and your plugin will fork+exec THAT executable (in the above example case, a 'duo_openvpn' python script) to do the authentication and return success/failure.
 
 Building
 ---
@@ -33,4 +33,4 @@ As such, I've shipped this repo without the .h file.
 
 Compatibility
 ---
-The plugin was tested against 2.4.6 initially, and has worked through-and-including 2.5.5.
+The plugin was tested against 2.4.6 initially, and has worked through-and-including 2.6.12.

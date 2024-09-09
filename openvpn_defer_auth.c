@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2024 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -54,7 +54,8 @@ void handle_sigchld(int sig)
 
 /* local wrapping of the log function, to add more details */
 static plugin_vlog_t _plugin_vlog_func = NULL;
-static void plog(const struct plugin_context *ctx, int flags, char *fmt, ...)
+static void
+plog(const struct plugin_context *ctx, int flags, char *fmt, ...)
 {
     UNUSED(ctx);
     char logid[129];
@@ -118,9 +119,10 @@ openvpn_plugin_open_v3(const int v3structver,
     if (args->argv[1] && !args->argv[2])
     {
         context->script_path = strdup(args->argv[1]);
-        if (context->script_path == NULL) {
-            plog(context, PLOG_NOTE, MODULE, "Unable to allocate memory");
-            return OPENVPN_PLUGIN_FUNC_ERROR;
+        if (!context->script_path)
+        {
+            plog(context, PLOG_ERR, "Out of memory");
+            goto error;
         }
     }
     else

@@ -1,203 +1,276 @@
-24,46d23
-< /*
-<  * This file implements a simple OpenVPN plugin module which
-<  * can do either an instant authentication or a deferred auth.
-<  * The purpose of this plug-in is to test multiple auth plugins
-<  * in the same configuration file
-<  *
-<  * Plugin arguments:
-<  *
-<  *   multi-auth.so LOG_ID  DEFER_TIME  USERNAME  PASSWORD
-<  *
-<  * LOG_ID is just an ID string used to separate auth results in the log
-<  * DEFER_TIME is the time to defer the auth. Set to 0 to return immediately
-<  * USERNAME is the username for a valid authentication
-<  * PASSWORD is the password for a valid authentication
-<  *
-<  * The DEFER_TIME time unit is in ms.
-<  *
-<  * Sample usage:
-<  *
-<  * plugin multi-auth.so MA_1 0 foo bar  # Instant reply user:foo pass:bar
-<  * plugin multi-auth.so MA_2 5000 fux bax # Defer 5 sec, user:fux pass: bax
-<  *
-<  */
-50d26
-< #include <stdarg.h>
-52d27
-< #include <stdbool.h>
-68,71d42
-<     int test_deferred_auth;
-<     char *authid;
-<     char *test_valid_user;
-<     char *test_valid_pass;
-77a49
->     UNUSED(ctx);
-80,87c52
-<     if (ctx && ctx->authid)
-<     {
-<         snprintf(logid, 128, "%s[%s]", MODULE, ctx->authid);
-<     }
-<     else
-<     {
-<         snprintf(logid, 128, "%s", MODULE);
-<     }
----
->     snprintf(logid, 128, "%s", MODULE);
-111,164d75
-< /*
-<  * Given an environmental variable name, search
-<  * the envp array for its value, returning it
-<  * if found or NULL otherwise.
-<  */
-< static const char *
-< get_env(const char *name, const char *envp[])
-< {
-<     if (envp)
-<     {
-<         int i;
-<         const int namelen = strlen(name);
-<         for (i = 0; envp[i]; ++i)
-<         {
-<             if (!strncmp(envp[i], name, namelen))
-<             {
-<                 const char *cp = envp[i] + namelen;
-<                 if (*cp == '=')
-<                 {
-<                     return cp + 1;
-<                 }
-<             }
-<         }
-<     }
-<     return NULL;
-< }
-< 
-< /* used for safe printf of possible NULL strings */
-< static const char *
-< np(const char *str)
-< {
-<     if (str)
-<     {
-<         return str;
-<     }
-<     else
-<     {
-<         return "[NULL]";
-<     }
-< }
-< 
-< static int
-< atoi_null0(const char *str)
-< {
-<     if (str)
-<     {
-<         return atoi(str);
-<     }
-<     else
-<     {
-<         return 0;
-<     }
-< }
-< 
-199,217d109
-<     /* simple module argument parsing */
-<     if ((args->argv[4]) && !args->argv[5])
-<     {
-<         context->authid = strdup(args->argv[1]);
-<         context->test_deferred_auth = atoi_null0(args->argv[2]);
-<         context->test_valid_user = strdup(args->argv[3]);
-<         context->test_valid_pass = strdup(args->argv[4]);
-<     }
-<     else
-<     {
-<         plog(context, PLOG_ERR, "Too many arguments provided");
-<         goto error;
-<     }
-< 
-<     if (context->test_deferred_auth > 0)
-<     {
-<         plog(context, PLOG_NOTE, "TEST_DEFERRED_AUTH %d", context->test_deferred_auth);
-<     }
-< 
-236,265d127
-< static bool
-< do_auth_user_pass(struct plugin_context *context,
-<                   const char *username, const char *password)
-< {
-<     plog(context, PLOG_NOTE,
-<         "expect_user=%s, received_user=%s, expect_passw=%s, received_passw=%s",
-<         np(context->test_valid_user),
-<         np(username),
-<         np(context->test_valid_pass),
-<         np(password));
-< 
-<     if (context->test_valid_user && context->test_valid_pass)
-<     {
-<         if ((strcmp(context->test_valid_user, username) != 0)
-<             || (strcmp(context->test_valid_pass, password) != 0))
-<         {
-<             plog(context, PLOG_ERR,
-<                 "User/Password auth result: FAIL");
-<             return false;
-<         }
-<         else
-<         {
-<             plog(context, PLOG_NOTE,
-<                 "User/Password auth result: PASS");
-<             return true;
-<         }
-<     }
-<     return false;
-< }
-< 
-272,292d133
-<     /* get username/password from envp string array */
-<     const char *username = get_env("username", envp);
-<     const char *password = get_env("password", envp);
-< 
-<     if (!context->test_deferred_auth)
-<     {
-<         plog(context, PLOG_NOTE, "Direct authentication");
-<         return do_auth_user_pass(context, username, password) ?
-<                 OPENVPN_PLUGIN_FUNC_SUCCESS : OPENVPN_PLUGIN_FUNC_ERROR;
-<     }
-< 
-<     /* get auth_control_file filename from envp string array*/
-<     const char *auth_control_file = get_env("auth_control_file", envp);
-<     plog(context, PLOG_NOTE, "auth_control_file=%s", auth_control_file);
-< 
-<     /* Authenticate asynchronously in n seconds */
-<     if (!auth_control_file)
-<     {
-<         return OPENVPN_PLUGIN_FUNC_ERROR;
-<     }
-< 
-326c167
-<      *  - return status is communicated by file
----
->      * FIXME - defer'ed goes here
-331,354d171
-<     plog(context, PLOG_NOTE, "in async/deferred handler, usleep(%d)",
-<         context->test_deferred_auth*1000);
-<     usleep(context->test_deferred_auth*1000);
-< 
-<     /* now signal success state to openvpn */
-<     int fd = open(auth_control_file, O_WRONLY);
-<     if (fd < 0)
-<     {
-<         plog(context, PLOG_ERR|PLOG_ERRNO,
-<             "open('%s') failed", auth_control_file);
-<         exit(1);
-<     }
-< 
-<     char result[2] = "0\0";
-<     if (do_auth_user_pass(context, username, password))
-<     {
-<         result[0] = '1';
-<     }
-< 
-<     if (write(fd, result, 1) != 1)
-<     {
-<         plog(context, PLOG_ERR|PLOG_ERRNO, "write to '%s' failed", auth_control_file );
-<     }
-<     close(fd);
+--- openvpn_defer_auth.c	2024-09-09 11:38:04
++++ openvpn_defer_auth.c	2024-09-09 11:58:25
+@@ -21,35 +21,10 @@
+  *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+  */
+
+-/*
+- * This file implements a simple OpenVPN plugin module which
+- * can do either an instant authentication or a deferred auth.
+- * The purpose of this plug-in is to test multiple auth plugins
+- * in the same configuration file
+- *
+- * Plugin arguments:
+- *
+- *   multi-auth.so LOG_ID  DEFER_TIME  USERNAME  PASSWORD
+- *
+- * LOG_ID is just an ID string used to separate auth results in the log
+- * DEFER_TIME is the time to defer the auth. Set to 0 to return immediately
+- * USERNAME is the username for a valid authentication
+- * PASSWORD is the password for a valid authentication
+- *
+- * The DEFER_TIME time unit is in ms.
+- *
+- * Sample usage:
+- *
+- * plugin multi-auth.so MA_1 0 foo bar  # Instant reply user:foo pass:bar
+- * plugin multi-auth.so MA_2 5000 fux bax # Defer 5 sec, user:fux pass: bax
+- *
+- */
+ #include <stdio.h>
+ #include <string.h>
+ #include <stdlib.h>
+-#include <stdarg.h>
+ #include <unistd.h>
+-#include <stdbool.h>
+ #include <fcntl.h>
+ #include <sys/types.h>
+ #include <sys/wait.h>
+@@ -65,10 +40,6 @@
+  */
+
+ struct plugin_context {
+-    int test_deferred_auth;
+-    char *authid;
+-    char *test_valid_user;
+-    char *test_valid_pass;
+ };
+
+ /* local wrapping of the log function, to add more details */
+@@ -76,16 +47,10 @@
+ static void
+ plog(const struct plugin_context *ctx, int flags, char *fmt, ...)
+ {
++    UNUSED(ctx);
+     char logid[129];
+
+-    if (ctx && ctx->authid)
+-    {
+-        snprintf(logid, 128, "%s[%s]", MODULE, ctx->authid);
+-    }
+-    else
+-    {
+-        snprintf(logid, 128, "%s", MODULE);
+-    }
++    snprintf(logid, 128, "%s", MODULE);
+
+     va_list arglist;
+     va_start(arglist, fmt);
+@@ -109,60 +74,6 @@
+ #define OPENVPN_PLUGIN_STRUCTVER_MIN 5
+
+
+-/*
+- * Given an environmental variable name, search
+- * the envp array for its value, returning it
+- * if found or NULL otherwise.
+- */
+-static const char *
+-get_env(const char *name, const char *envp[])
+-{
+-    if (envp)
+-    {
+-        int i;
+-        const int namelen = strlen(name);
+-        for (i = 0; envp[i]; ++i)
+-        {
+-            if (!strncmp(envp[i], name, namelen))
+-            {
+-                const char *cp = envp[i] + namelen;
+-                if (*cp == '=')
+-                {
+-                    return cp + 1;
+-                }
+-            }
+-        }
+-    }
+-    return NULL;
+-}
+-
+-/* used for safe printf of possible NULL strings */
+-static const char *
+-np(const char *str)
+-{
+-    if (str)
+-    {
+-        return str;
+-    }
+-    else
+-    {
+-        return "[NULL]";
+-    }
+-}
+-
+-static int
+-atoi_null0(const char *str)
+-{
+-    if (str)
+-    {
+-        return atoi(str);
+-    }
+-    else
+-    {
+-        return 0;
+-    }
+-}
+-
+ /* Require a minimum OpenVPN Plugin API */
+ OPENVPN_EXPORT int
+ openvpn_plugin_min_version_required_v1()
+@@ -193,44 +104,10 @@
+     struct plugin_context *context = NULL;
+     context = (struct plugin_context *) calloc(1, sizeof(struct plugin_context));
+     if (!context)
+-    {
+-        goto error;
+-    }
+-
+-    /* simple module argument parsing */
+-    if ((args->argv[4]) && !args->argv[5])
+-    {
+-        context->authid = strdup(args->argv[1]);
+-        if (!context->authid)
+-        {
+-            plog(context, PLOG_ERR, "Out of memory");
+-            goto error;
+-        }
+-        context->test_deferred_auth = atoi_null0(args->argv[2]);
+-        context->test_valid_user = strdup(args->argv[3]);
+-        if (!context->test_valid_user)
+-        {
+-            plog(context, PLOG_ERR, "Out of memory");
+-            goto error;
+-        }
+-        context->test_valid_pass = strdup(args->argv[4]);
+-        if (!context->test_valid_pass)
+-        {
+-            plog(context, PLOG_ERR, "Out of memory");
+-            goto error;
+-        }
+-    }
+-    else
+     {
+-        plog(context, PLOG_ERR, "Too many arguments provided");
+         goto error;
+     }
+
+-    if (context->test_deferred_auth > 0)
+-    {
+-        plog(context, PLOG_NOTE, "TEST_DEFERRED_AUTH %d", context->test_deferred_auth);
+-    }
+-
+     /*
+      * Which callbacks to intercept.
+      */
+@@ -249,63 +126,12 @@
+     return OPENVPN_PLUGIN_FUNC_ERROR;
+ }
+
+-static bool
+-do_auth_user_pass(struct plugin_context *context,
+-                  const char *username, const char *password)
+-{
+-    plog(context, PLOG_NOTE,
+-         "expect_user=%s, received_user=%s, expect_passw=%s, received_passw=%s",
+-         np(context->test_valid_user),
+-         np(username),
+-         np(context->test_valid_pass),
+-         np(password));
+
+-    if (context->test_valid_user && context->test_valid_pass)
+-    {
+-        if ((strcmp(context->test_valid_user, username) != 0)
+-            || (strcmp(context->test_valid_pass, password) != 0))
+-        {
+-            plog(context, PLOG_ERR,
+-                 "User/Password auth result: FAIL");
+-            return false;
+-        }
+-        else
+-        {
+-            plog(context, PLOG_NOTE,
+-                 "User/Password auth result: PASS");
+-            return true;
+-        }
+-    }
+-    return false;
+-}
+-
+-
+ static int
+ auth_user_pass_verify(struct plugin_context *context,
+                       const char *argv[], const char *envp[])
+ {
+     UNUSED(argv);
+-    /* get username/password from envp string array */
+-    const char *username = get_env("username", envp);
+-    const char *password = get_env("password", envp);
+-
+-    if (!context->test_deferred_auth)
+-    {
+-        plog(context, PLOG_NOTE, "Direct authentication");
+-        return do_auth_user_pass(context, username, password) ?
+-               OPENVPN_PLUGIN_FUNC_SUCCESS : OPENVPN_PLUGIN_FUNC_ERROR;
+-    }
+-
+-    /* get auth_control_file filename from envp string array*/
+-    const char *auth_control_file = get_env("auth_control_file", envp);
+-    plog(context, PLOG_NOTE, "auth_control_file=%s", auth_control_file);
+-
+-    /* Authenticate asynchronously in n seconds */
+-    if (!auth_control_file)
+-    {
+-        return OPENVPN_PLUGIN_FUNC_ERROR;
+-    }
+-
+     /* we do not want to complicate our lives with having to wait()
+      * for child processes (so they are not zombiefied) *and* we MUST NOT
+      * fiddle with signal handlers (= shared with openvpn main), so
+@@ -339,36 +165,12 @@
+
+     /* (grand-)child process
+      *  - never call "return" now (would mess up openvpn)
+-     *  - return status is communicated by file
++     * FIXME - defer'ed goes here
+      *  - then exit()
+      */
+
+     /* do mighty complicated work that will really take time here... */
+-    plog(context, PLOG_NOTE, "in async/deferred handler, usleep(%d)",
+-         context->test_deferred_auth*1000);
+-    usleep(context->test_deferred_auth*1000);
+
+-    /* now signal success state to openvpn */
+-    int fd = open(auth_control_file, O_WRONLY);
+-    if (fd < 0)
+-    {
+-        plog(context, PLOG_ERR|PLOG_ERRNO,
+-             "open('%s') failed", auth_control_file);
+-        exit(1);
+-    }
+-
+-    char result[2] = "0\0";
+-    if (do_auth_user_pass(context, username, password))
+-    {
+-        result[0] = '1';
+-    }
+-
+-    if (write(fd, result, 1) != 1)
+-    {
+-        plog(context, PLOG_ERR|PLOG_ERRNO, "write to '%s' failed", auth_control_file );
+-    }
+-    close(fd);
+-
+     exit(0);
+ }
+

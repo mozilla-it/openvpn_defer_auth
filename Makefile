@@ -30,17 +30,10 @@ libdir_Linux = $(libdir_Linux_$(shell uname -i))
 LIBDIR = $(PREFIX)/$(libdir_$(shell uname -s))
 
 .DEFAULT: all
-.PHONY: clean all preflight install installdirs install-strip uninstall rpm
+.PHONY: clean all install installdirs install-strip uninstall rpm
 
-all: preflight
+all:
 	$(MAKE) $(PROGRAM)
-
-preflight:
-	@if [ ! -f openvpn-plugin.h ]; then \
-		echo "The openvpn-plugin.h file is missing.  Fetch a copy from the openvpn tarball."; \
-		echo "  https://openvpn.net/community-downloads/"; \
-		false; \
-	fi
 
 $(PROGRAM): $(obj)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
@@ -53,7 +46,7 @@ clean:
 installdirs:
 	mkdir -p $(DESTDIR)$(LIBDIR)/openvpn/plugins
 
-install: preflight $(PROGRAM)
+install: $(PROGRAM)
 	@$(MAKE) installdirs
 	$(INSTALL) -m755 $(PROGRAM) $(DESTDIR)$(LIBDIR)/openvpn/plugins
 

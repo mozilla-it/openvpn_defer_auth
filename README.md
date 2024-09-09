@@ -26,9 +26,6 @@ This library's source is shipped under a GPLv2 license, the same as OpenVPN 2.
 
 The plugin is greatly derived from their sample code.
 
-To avoid any license/redistribution concerns, I'd love to use a submodule here and say "get it from their repo".  But their git has ```openvpn-plugin.h``` as a pre-autoconf ```.in``` file.  And I COULD have you do it with a lot of autoconf.  But then you'd be building against something that wasn't their shipped code.
-
-As such, I've shipped this repo without the .h file.
 
 
 Compatibility

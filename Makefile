@@ -26,7 +26,7 @@ LDFLAGS = -shared -Wl,$(linker_$(shell uname -s))
 libdir_Darwin = lib
 libdir_Linux_x86_64 = lib64
 libdir_Linux_i686   = lib
-libdir_Linux = $(libdir_Linux_$(shell uname -i))
+libdir_Linux = $(libdir_Linux_$(shell uname -m))
 LIBDIR = $(PREFIX)/$(libdir_$(shell uname -s))
 
 .DEFAULT: all

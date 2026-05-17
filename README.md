@@ -30,4 +30,4 @@ The plugin is greatly derived from their sample code.
 
 Compatibility
 ---
-The plugin was tested against 2.4.6 initially, and has worked through-and-including 2.6.12.
+The plugin was tested against 2.4.6 initially, and has worked through-and-including 2.7.4.

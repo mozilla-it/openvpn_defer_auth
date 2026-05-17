@@ -6,11 +6,11 @@ Setting Up
 ---
 This all began with OpenVPN's sample 'defer' plugin code, <https://github.com/OpenVPN/openvpn/blob/fdfbd4441c2225dc69431c57d18291e103c466cf/sample/sample-plugins/defer/simple.c>
 Due to a bug in handling multiple deferred plugins, they retired this in 2022-03, so we're back here to adapt to the replacement ```multi-auth.c```:
-<https://github.com/OpenVPN/openvpn/blob/976a65346d2193181f4f5664f798e16fcbf43345/sample/sample-plugins/defer/multi-auth.c>
+<https://github.com/OpenVPN/openvpn/blob/f94a3ad2bafedf38076989a28846728536a02b8e/sample/sample-plugins/defer/multi-auth.c>
 
 Save the sample 'defer' plugin file:
 
-```curl -s -L -o openvpn_defer_auth.c https://raw.githubusercontent.com/OpenVPN/openvpn/976a65346d2193181f4f5664f798e16fcbf43345/sample/sample-plugins/defer/multi-auth.c```
+```curl -s -L -o openvpn_defer_auth.c https://raw.githubusercontent.com/OpenVPN/openvpn/f94a3ad2bafedf38076989a28846728536a02b8e/sample/sample-plugins/defer/multi-auth.c```
 
 This is the basis of our script (and note that I'm listing the specific commit, so you can see how up-to-date things are).  Now we start editing it.
 
